@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use App\Models\Jadwal;
 use App\Models\JamPelajaran;
+use App\Models\KalenderAkademik;
 
 class AbsensiController extends Controller
 {
@@ -27,6 +28,15 @@ class AbsensiController extends Controller
         $user = $request->user();
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
         $today = now()->toDateString();
+        $libur = KalenderAkademik::liburPada(now());
+
+        if ($libur) {
+            return response()->json([
+                'tanggal' => $today,
+                'libur' => $libur->ringkas(),
+                'data' => [],
+            ]);
+        }
 
         // Kelas tempat guru ini mengajar di jam ke-1 atau ke-2 hari ini
         $kelasJadwal = Jadwal::where('tahun_ajaran_id', $ta->id)

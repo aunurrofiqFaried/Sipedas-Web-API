@@ -11,22 +11,32 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Models\JadwalPiket;
 use App\Models\JamPelajaran;
+use App\Models\KalenderAkademik;
 
 
 class JadwalController extends Controller
 {
-    // GET /api/jadwal/hari-ini
     public function hariIni(Request $request): JsonResponse
     {
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
         $now = now();
 
-        $jadwal = Jadwal::with(['kelas:id,nama', 'mapel:id,nama', 'ruang:id,nama,tipe'])
-            ->where('guru_id', $request->user()->id)
-            ->where('tahun_ajaran_id', $ta->id)
-            ->where('hari', $now->dayOfWeekIso)
-            ->orderBy('jam_mulai')
-            ->get();
+        $acara = KalenderAkademik::pada($now);
+        $libur = $acara->firstWhere('jenis', 'libur');
+
+        $peringatan = $acara->where('jenis', 'peringatan')
+            ->values()
+            ->map(fn (KalenderAkademik $e) => ['judul' => $e->judul, 'keterangan' => $e->keterangan]);
+
+        // Hari libur: tidak ada jadwal mengajar maupun piket
+        $jadwal = $libur
+            ? collect()
+            : Jadwal::with(['kelas:id,nama', 'mapel:id,nama', 'ruang:id,nama,tipe'])
+                ->where('guru_id', $request->user()->id)
+                ->where('tahun_ajaran_id', $ta->id)
+                ->where('hari', $now->dayOfWeekIso)
+                ->orderBy('jam_mulai')
+                ->get();
 
         $sudahJurnal = Jurnal::whereIn('jadwal_id', $jadwal->pluck('id'))
             ->where('tanggal', $now->toDateString())
@@ -45,28 +55,32 @@ class JadwalController extends Controller
             'jam_selesai' => substr($j->jam_selesai, 0, 5),
             'sudah_jurnal' => in_array((int) $j->id, $sudahJurnal, true),
             'bisa_isi_jurnal' => JadwalService::bisaDiisi($j, $now),
-        ]);
+        ])->values();
 
-        // Piket guru ini hari ini (hanya yang sudah punya jam)
         $jam = JamPelajaran::semua();
 
-        $piket = JadwalPiket::where('user_id', $request->user()->id)
-            ->where('tahun_ajaran_id', $ta->id)
-            ->where('hari', $now->dayOfWeekIso)
-            ->whereNotNull('jam_ke_mulai')
-            ->orderBy('jam_ke_mulai')
-            ->get()
-            ->map(fn (JadwalPiket $p) => [
-                'jam_ke_mulai' => (int) $p->jam_ke_mulai,
-                'jam_ke_selesai' => (int) $p->jam_ke_selesai,
-                'jam_mulai' => substr((string) $jam->get($p->jam_ke_mulai)?->jam_mulai, 0, 5),
-                'jam_selesai' => substr((string) $jam->get($p->jam_ke_selesai)?->jam_selesai, 0, 5),
-                'tugas' => $p->tugas,
-            ]);
+        $piket = $libur
+            ? collect()
+            : JadwalPiket::where('user_id', $request->user()->id)
+                ->where('tahun_ajaran_id', $ta->id)
+                ->where('hari', $now->dayOfWeekIso)
+                ->whereNotNull('jam_ke_mulai')
+                ->orderBy('jam_ke_mulai')
+                ->get()
+                ->map(fn (JadwalPiket $p) => [
+                    'jam_ke_mulai' => (int) $p->jam_ke_mulai,
+                    'jam_ke_selesai' => (int) $p->jam_ke_selesai,
+                    'jam_mulai' => substr((string) $jam->get($p->jam_ke_mulai)?->jam_mulai, 0, 5),
+                    'jam_selesai' => substr((string) $jam->get($p->jam_ke_selesai)?->jam_selesai, 0, 5),
+                    'tugas' => $p->tugas,
+                ])
+                ->values();
 
         return response()->json([
             'tanggal' => $now->toDateString(),
             'jam_server' => $now->format('H:i:s'),
+            'libur' => $libur?->ringkas(),
+            'peringatan' => $peringatan,
             'data' => $data,
             'piket' => $piket,
         ]);

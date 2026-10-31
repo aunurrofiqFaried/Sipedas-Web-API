@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\KontakWaliController;
 use App\Http\Controllers\Api\SholatController;
 use App\Http\Controllers\Api\RekapController;
+use App\Http\Controllers\Api\KalenderAkademikController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -27,10 +28,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/absensi/kelas-hari-ini', [AbsensiController::class, 'kelasHariIni']);
         Route::get('/kelas/{kelas}/siswa', [AbsensiController::class, 'siswa']);
-        Route::post('/absensi', [AbsensiController::class, 'store']);
+        Route::post('/absensi', [AbsensiController::class, 'store'])->middleware('tidak.libur');
 
         Route::get('/jurnal', [JurnalController::class, 'index']);
-        Route::post('/jurnal', [JurnalController::class, 'store']);
+        Route::post('/jurnal', [JurnalController::class, 'store'])->middleware('tidak.libur');
         Route::get('/jurnal/bulan', [JurnalController::class, 'bulan']);
 
         Route::get('/pelanggaran/jenis', [PelanggaranController::class, 'jenis']);
@@ -39,10 +40,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/sholat/kelas-saya', [SholatController::class, 'kelasSaya']);
         Route::get('/sholat/{waktu}/kelas/{kelas}', [SholatController::class, 'siswa']);
-        Route::post('/sholat', [SholatController::class, 'store']);
+        Route::post('/sholat', [SholatController::class, 'store'])->middleware('tidak.libur');
 
         Route::get('/rekap/kelas', [RekapController::class, 'kelas']);
         Route::get('/rekap/absensi', [RekapController::class, 'absensi']);
+
+        Route::get('/kalender-akademik', [KalenderAkademikController::class, 'index']);
     });
 
     // Melihat riwayat pelanggaran siswa (kepala sekolah boleh melihat)
