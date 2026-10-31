@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\KontakWaliController;
 use App\Http\Controllers\Api\SholatController;
 use App\Http\Controllers\Api\RekapController;
 use App\Http\Controllers\Api\KalenderAkademikController;
+use App\Http\Controllers\Api\PengumumanController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -46,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/rekap/absensi', [RekapController::class, 'absensi']);
 
         Route::get('/kalender-akademik', [KalenderAkademikController::class, 'index']);
+
+        Route::get('/pengumuman', [PengumumanController::class, 'index']);
+        Route::post('/pengumuman/dibaca', [PengumumanController::class, 'dibaca']);
     });
 
     // Melihat riwayat pelanggaran siswa (kepala sekolah boleh melihat)
