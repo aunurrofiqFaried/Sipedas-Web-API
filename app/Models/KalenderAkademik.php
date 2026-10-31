@@ -36,10 +36,30 @@ class KalenderAkademik extends Model
             ->get();
     }
 
-    public static function liburPada(Carbon|string $tanggal): ?self
-    {
-        return static::pada($tanggal)->firstWhere('jenis', 'libur');
-    }
+  public static function liburPada(Carbon|string $tanggal): ?self
+  {
+      $t = Carbon::parse($tanggal);
+
+      // Acara libur buatan admin diutamakan karena judulnya lebih spesifik
+      $libur = static::pada($t)->firstWhere('jenis', 'libur');
+
+      if ($libur) {
+          return $libur;
+      }
+
+      // Sabtu dan Minggu: libur otomatis (tidak disimpan di database)
+      if ($t->isWeekend()) {
+          return new static([
+              'judul' => 'Akhir pekan',
+              'jenis' => 'libur',
+              'tanggal_mulai' => $t->toDateString(),
+              'tanggal_selesai' => $t->toDateString(),
+              'keterangan' => null,
+          ]);
+      }
+
+      return null;
+  }
 
     public function ringkas(): array
     {

@@ -21,8 +21,8 @@ class JadwalController extends Controller
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
         $now = now();
 
+        $libur = KalenderAkademik::liburPada($now);
         $acara = KalenderAkademik::pada($now);
-        $libur = $acara->firstWhere('jenis', 'libur');
 
         $peringatan = $acara->where('jenis', 'peringatan')
             ->values()
