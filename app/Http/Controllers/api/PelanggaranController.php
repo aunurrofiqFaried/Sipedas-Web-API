@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Models\RemisiSiswa;
 
 class PelanggaranController extends Controller
 {
@@ -97,7 +98,7 @@ class PelanggaranController extends Controller
         ], 201);
     }
 
-    // GET /api/siswa/{siswa}/pelanggaran  (riwayat + total poin + SP tahun ajaran aktif)
+    // GET /api/siswa/{siswa}/pelanggaran
     public function riwayat(Siswa $siswa): JsonResponse
     {
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
@@ -109,17 +110,30 @@ class PelanggaranController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $remisi = RemisiSiswa::with(['jenis:id,nama', 'pencatat:id,name'])
+            ->where('siswa_id', $siswa->id)
+            ->where('tahun_ajaran_id', $ta->id)
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id')
+            ->get();
+
         $sp = SpSiswa::with('aturan:id,nama,level,batas_poin')
             ->where('siswa_id', $siswa->id)
             ->where('tahun_ajaran_id', $ta->id)
             ->get();
 
+        $totalPelanggaran = (int) $riwayat->sum('poin');
+        $totalRemisi = (int) $remisi->sum('poin');
+
         return response()->json([
             'siswa' => $siswa->only(['id', 'nis', 'nama']),
             'tahun_ajaran' => $ta->nama,
-            'total_poin' => (int) $riwayat->sum('poin'),
+            'total_pelanggaran' => $totalPelanggaran,
+            'total_remisi' => $totalRemisi,
+            'total_poin' => max(0, $totalPelanggaran - $totalRemisi),
             'sp' => $sp,
             'riwayat' => $riwayat,
+            'remisi' => $remisi,
         ]);
     }
 }

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\RekapController;
 use App\Http\Controllers\Api\KalenderAkademikController;
 use App\Http\Controllers\Api\PengumumanController;
 use App\Http\Controllers\Api\StatistikController;
+use App\Http\Controllers\Api\RemisiController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -53,6 +54,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/pengumuman/dibaca', [PengumumanController::class, 'dibaca']);
 
         Route::get('/statistik/guru', [StatistikController::class, 'guru']);
+
+        Route::get('/remisi/jenis', [RemisiController::class, 'jenis']);
+        Route::post('/remisi', [RemisiController::class, 'store']);
     });
 
     // Melihat riwayat pelanggaran siswa (kepala sekolah boleh melihat)
@@ -64,5 +68,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:guru_bk,kesiswaan')->group(function () {
         Route::get('/bk/siswa/{siswa}/kontak-wali', [KontakWaliController::class, 'show']);
         Route::post('/bk/siswa/{siswa}/kontak-wali', [KontakWaliController::class, 'store']);
+        Route::get('/remisi/jenis', [RemisiController::class, 'jenis']);
+        Route::post('/remisi', [RemisiController::class, 'store']);
+
 });
 });

@@ -123,6 +123,10 @@ class SpSiswaResource extends Resource
             TextColumn::make('total_poin_saat_terbit')
                 ->label('Total poin'),
 
+            TextColumn::make('poin_sekarang')
+            ->label('Poin sekarang')
+            ->state(fn (SpSiswa $r): int => $r->siswa->totalPoin($r->tahun_ajaran_id)),
+
             TextColumn::make('status')
                 ->badge()
                 ->formatStateUsing(fn (string $state): string => ucfirst($state))

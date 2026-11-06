@@ -45,19 +45,15 @@ class SiswaMendekatiSp extends TableWidget
                     return Siswa::query()->whereRaw('1 = 0');
                 }
 
+                // Poin aktif = total pelanggaran dikurangi total remisi pada tahun ajaran aktif
+                $net = '(COALESCE((SELECT SUM(poin) FROM pelanggaran_siswa WHERE pelanggaran_siswa.siswa_id = siswa.id AND pelanggaran_siswa.tahun_ajaran_id = ?), 0)'
+                    . ' - COALESCE((SELECT SUM(poin) FROM remisi_siswa WHERE remisi_siswa.siswa_id = siswa.id AND remisi_siswa.tahun_ajaran_id = ?), 0))';
+
                 return Siswa::query()
-                    ->where('is_active', true)
-                    ->whereIn(
-                        'id',
-                        PelanggaranSiswa::where('tahun_ajaran_id', $ta->id)
-                            ->select('siswa_id')
-                            ->groupBy('siswa_id')
-                            ->havingRaw('SUM(poin) >= ?', [self::AMBANG_POIN])
-                    )
-                    ->withSum(
-                        ['pelanggaran as total_poin' => fn (Builder $q) => $q->where('tahun_ajaran_id', $ta->id)],
-                        'poin'
-                    )
+                    ->select('siswa.*')
+                    ->selectRaw("GREATEST(0, {$net}) as total_poin", [$ta->id, $ta->id])
+                    ->where('siswa.is_active', true)
+                    ->whereRaw("{$net} >= ?", [$ta->id, $ta->id, self::AMBANG_POIN])
                     ->with('kelasSiswaAktif.kelas');
             })
             ->columns([

@@ -49,11 +49,28 @@ class Siswa extends Model
         return $this->hasMany(SpSiswa::class);
     }
 
-    // Total poin pelanggaran dalam satu tahun ajaran (poin reset per tahun ajaran)
-    public function totalPoin(int $tahunAjaranId): int
+    public function remisi(): HasMany
+    {
+        return $this->hasMany(RemisiSiswa::class);
+    }
+
+    public function totalPelanggaran(int $tahunAjaranId): int
     {
         return (int) $this->pelanggaran()
             ->where('tahun_ajaran_id', $tahunAjaranId)
             ->sum('poin');
+    }
+
+    public function totalRemisi(int $tahunAjaranId): int
+    {
+        return (int) $this->remisi()
+            ->where('tahun_ajaran_id', $tahunAjaranId)
+            ->sum('poin');
+    }
+
+    // Poin aktif = pelanggaran dikurangi remisi, tidak pernah di bawah nol
+    public function totalPoin(int $tahunAjaranId): int
+    {
+        return max(0, $this->totalPelanggaran($tahunAjaranId) - $this->totalRemisi($tahunAjaranId));
     }
 }
