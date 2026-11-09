@@ -68,8 +68,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:guru_bk,kesiswaan')->group(function () {
         Route::get('/bk/siswa/{siswa}/kontak-wali', [KontakWaliController::class, 'show']);
         Route::post('/bk/siswa/{siswa}/kontak-wali', [KontakWaliController::class, 'store']);
-        Route::get('/remisi/jenis', [RemisiController::class, 'jenis']);
-        Route::post('/remisi', [RemisiController::class, 'store']);
 
 });
 });
