@@ -44,6 +44,7 @@
         }
         .pagenum:before { content: counter(page); }
     </style>
+    @stack('gaya')
 </head>
 <body>
     <div class="footer">
