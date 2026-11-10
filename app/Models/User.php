@@ -20,6 +20,17 @@ class User extends Authenticatable implements FilamentUser
     public const ROLE_KESISWAAN = 'kesiswaan';
     public const ROLE_KEPALA_SEKOLAH = 'kepala_sekolah';
     public const ROLE_STAF = 'staf';
+    public const ROLE_WAKA_KURIKULUM = 'waka_kurikulum';
+    public const ROLE_WAKA_SDM = 'waka_sdm';
+
+    // Peran yang boleh melihat data seluruh sekolah dan memantau guru
+    public const PERAN_PIMPINAN = ['admin', 'kepala_sekolah', 'waka_kurikulum', 'kesiswaan', 'waka_sdm'];
+
+
+    public function isPimpinan(): bool
+    {
+        return in_array($this->role, self::PERAN_PIMPINAN, true);
+    }
 
     public const ROLES = [
         self::ROLE_ADMIN,

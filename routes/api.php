@@ -17,6 +17,8 @@ use App\Http\Controllers\Api\RekapJurnalController;
 use App\Http\Controllers\Api\RekapDaftarHadirController;
 use App\Http\Controllers\Api\RekapPoinController;
 use App\Http\Controllers\Api\RekapSholatController;
+use App\Http\Controllers\Api\Pimpinan\KepatuhanJurnalController;
+use App\Http\Controllers\Api\Pimpinan\DashboardController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -87,6 +89,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:guru_bk,kesiswaan')->group(function () {
         Route::get('/bk/siswa/{siswa}/kontak-wali', [KontakWaliController::class, 'show']);
         Route::post('/bk/siswa/{siswa}/kontak-wali', [KontakWaliController::class, 'store']);
+    });
 
-});
+    Route::middleware('role:admin,kepala_sekolah,waka_kurikulum,kesiswaan,waka_sdm')
+    ->prefix('pimpinan')
+    ->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/kepatuhan-jurnal', [KepatuhanJurnalController::class, 'index']);
+        Route::get('/kepatuhan-jurnal/{guru}', [KepatuhanJurnalController::class, 'show']);
+    });
 });
