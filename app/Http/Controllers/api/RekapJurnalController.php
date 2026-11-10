@@ -37,7 +37,7 @@ class RekapJurnalController extends Controller
         $rekap = $this->susun($request);
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
 
-        $pdf = Pdf::loadView('pdf.jurnal-guru', array_merge(PdfData::umum(), [
+        $pdf = Pdf::loadView('pdf.jurnal-guru', array_merge(PdfData::umum(mendatar: true), [
             'rekap' => $rekap,
             'ta' => $ta,
         ]))->setPaper('a4', 'landscape');

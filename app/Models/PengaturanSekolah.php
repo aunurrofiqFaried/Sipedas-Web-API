@@ -11,7 +11,7 @@ class PengaturanSekolah extends Model
 
     protected $fillable = [
         'instansi_1', 'instansi_2', 'nama_sekolah', 'alamat',
-        'telepon', 'website', 'email', 'kota', 'kop_gambar',
+        'telepon', 'website', 'email', 'kota', 'kop_gambar', 'kop_lebar',
     ];
 
     public static function ambil(): self

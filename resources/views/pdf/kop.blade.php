@@ -1,5 +1,7 @@
 @if ($kopGambar)
-    <img src="{{ $kopGambar }}" style="width: 100%; display: block;">
+    <div style="text-align: center;">
+        <img src="{{ $kopGambar }}" style="width: {{ $lebarKop }}%;">
+    </div>
 @else
     <div style="text-align: center; border-bottom: 3px solid #000; padding-bottom: 6px;">
         @if ($sekolah->instansi_1)<div style="font-size: 12px; font-weight: bold;">{{ $sekolah->instansi_1 }}</div>@endif

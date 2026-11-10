@@ -73,6 +73,16 @@ class PengaturanSekolahResource extends Resource
                 ->directory('kop')
                 ->visibility('private')
                 ->helperText('Unggah gambar kop lengkap (logo, nama, alamat, dan garis) selebar halaman. Kalau diisi, gambar ini dipakai sebagai kop PDF. Kalau kosong, kop dibuat dari teks di atas.'),
+
+            TextInput::make('kop_lebar')
+                ->label('Lebar kop di PDF (%)')
+                ->numeric()
+                ->minValue(30)
+                ->maxValue(100)
+                ->suffix('%')
+                ->default(70)
+                ->required()
+                ->helperText('Makin kecil angkanya, makin kecil kop di PDF. Mulai dari 70; coba 60 atau 50 kalau masih terlalu besar. Di kertas mendatar (jurnal) ukurannya otomatis disesuaikan.'),
         ]);
     }
 
