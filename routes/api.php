@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\KalenderAkademikController;
 use App\Http\Controllers\Api\PengumumanController;
 use App\Http\Controllers\Api\StatistikController;
 use App\Http\Controllers\Api\RemisiController;
+use App\Http\Controllers\Api\RekapJurnalController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -57,6 +58,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/remisi/jenis', [RemisiController::class, 'jenis']);
         Route::post('/remisi', [RemisiController::class, 'store']);
+
+        Route::get('/rekap/absensi/pdf', [RekapController::class, 'absensiPdf']);
+
+        Route::get('/rekap/jurnal', [RekapJurnalController::class, 'index']);
+        Route::get('/rekap/jurnal/pdf', [RekapJurnalController::class, 'pdf']);
     });
 
     // Melihat riwayat pelanggaran siswa (kepala sekolah boleh melihat)

@@ -7,12 +7,20 @@ use App\Models\Absensi;
 use App\Models\Kelas;
 use App\Models\Siswa;
 use App\Models\TahunAjaran;
+use App\Support\PdfData;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class RekapController extends Controller
 {
+    private const ATURAN = [
+        'kelas_id' => ['required', 'integer', 'exists:kelas,id'],
+        'bulan' => ['required', 'regex:/^(\d{4}-(0[1-9]|1[0-2])|semua)$/'],
+    ];
+
     // GET /api/rekap/kelas
     // Semua kelas pada tahun ajaran aktif (untuk pilihan kelas)
     public function kelas(): JsonResponse
@@ -37,11 +45,44 @@ class RekapController extends Controller
     {
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
 
-        $data = $request->validate([
-            'kelas_id' => ['required', 'integer', 'exists:kelas,id'],
-            'bulan' => ['required', 'regex:/^(\d{4}-(0[1-9]|1[0-2])|semua)$/'],
-        ]);
+        return response()->json($this->susunRekapAbsensi($request->validate(self::ATURAN), $ta));
+    }
 
+    // GET /api/rekap/absensi/pdf?kelas_id=1&bulan=2026-10
+    public function absensiPdf(Request $request)
+    {
+        $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
+        $data = $request->validate(self::ATURAN);
+
+        $rekap = $this->susunRekapAbsensi($data, $ta);
+        $kelas = Kelas::with('waliKelas:id,name,nip')->findOrFail($data['kelas_id']);
+
+        $siswa = collect($rekap['siswa'])->map(function (array $s) {
+            $jumlah = $s['hadir'] + $s['sakit'] + $s['izin'] + $s['alpa'];
+            $s['persen'] = $jumlah > 0 ? (int) round($s['hadir'] / $jumlah * 100) : null;
+
+            return $s;
+        });
+
+        $adaData = $siswa->filter(fn (array $s) => $s['persen'] !== null);
+        $rata = $adaData->isNotEmpty() ? (int) round($adaData->avg('persen')) : null;
+
+        $pdf = Pdf::loadView('pdf.rekap-absensi', array_merge(PdfData::umum(), [
+            'rekap' => $rekap,
+            'ta' => $ta,
+            'kelas' => $kelas,
+            'siswa' => $siswa,
+            'rata' => $rata,
+            'alpaTerbanyak' => $siswa->where('alpa', '>', 0)->sortByDesc('alpa')->take(5)->values(),
+            'pencetak' => $request->user(),
+        ]))->setPaper('a4', 'portrait');
+
+        return $pdf->stream('rekap-kehadiran-' . Str::slug($kelas->nama) . '-' . $data['bulan'] . '.pdf');
+    }
+
+    // Perhitungan rekap absensi satu kelas, dipakai oleh JSON dan PDF
+    private function susunRekapAbsensi(array $data, TahunAjaran $ta): array
+    {
         $kelas = Kelas::where('tahun_ajaran_id', $ta->id)->findOrFail($data['kelas_id']);
 
         if ($data['bulan'] === 'semua') {
@@ -56,7 +97,6 @@ class RekapController extends Controller
 
         $rentang = [$dari->toDateString(), $sampai->toDateString()];
 
-        // Jumlah per siswa per status
         $rekap = Absensi::where('kelas_id', $kelas->id)
             ->whereBetween('tanggal', $rentang)
             ->selectRaw('siswa_id, status, COUNT(*) as total')
@@ -91,13 +131,9 @@ class RekapController extends Controller
             })
             ->values();
 
-        return response()->json([
+        return [
             'kelas' => ['id' => $kelas->id, 'nama' => $kelas->nama],
-            'periode' => [
-                'label' => $label,
-                'dari' => $rentang[0],
-                'sampai' => $rentang[1],
-            ],
+            'periode' => ['label' => $label, 'dari' => $rentang[0], 'sampai' => $rentang[1]],
             'hari_tercatat' => $hariTercatat,
             'total' => [
                 'hadir' => $siswa->sum('hadir'),
@@ -105,7 +141,7 @@ class RekapController extends Controller
                 'izin' => $siswa->sum('izin'),
                 'alpa' => $siswa->sum('alpa'),
             ],
-            'siswa' => $siswa,
-        ]);
+            'siswa' => $siswa->all(),
+        ];
     }
 }
