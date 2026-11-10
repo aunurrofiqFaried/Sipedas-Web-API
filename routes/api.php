@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\StatistikController;
 use App\Http\Controllers\Api\RemisiController;
 use App\Http\Controllers\Api\RekapJurnalController;
 use App\Http\Controllers\Api\RekapDaftarHadirController;
+use App\Http\Controllers\Api\RekapPoinController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -67,6 +68,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/rekap/daftar-hadir', [RekapDaftarHadirController::class, 'index']);
         Route::get('/rekap/daftar-hadir/pdf', [RekapDaftarHadirController::class, 'pdf']);
+
+        Route::get('/rekap/poin', [RekapPoinController::class, 'index']);
+        Route::get('/rekap/poin/pdf', [RekapPoinController::class, 'pdf']);
     });
 
     // Melihat riwayat pelanggaran siswa (kepala sekolah boleh melihat)
