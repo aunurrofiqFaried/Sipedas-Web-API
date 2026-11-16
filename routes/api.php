@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\RekapPoinController;
 use App\Http\Controllers\Api\RekapSholatController;
 use App\Http\Controllers\Api\Pimpinan\KepatuhanJurnalController;
 use App\Http\Controllers\Api\Pimpinan\DashboardController;
+use App\Http\Controllers\Api\Pimpinan\PengumumanKelolaController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -31,7 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     ->middleware('throttle:5,1');
 
     // Fitur harian guru (admin selalu lolos di middleware role)
-    Route::middleware('role:guru,guru_bk,kesiswaan,kepala_sekolah')->group(function () {
+    Route::middleware('role:guru,guru_bk,kesiswaan,kepala_sekolah,waka_kurikulum,waka_sdm')->group(function () {
         Route::get('/jadwal/hari-ini', [JadwalController::class, 'hariIni']);
         Route::get('/jadwal/saya', [JadwalController::class, 'saya']);
 
@@ -97,5 +98,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/kepatuhan-jurnal', [KepatuhanJurnalController::class, 'index']);
         Route::get('/kepatuhan-jurnal/{guru}', [KepatuhanJurnalController::class, 'show']);
+        Route::get('/pengumuman', [PengumumanKelolaController::class, 'index']);
+        Route::post('/pengumuman', [PengumumanKelolaController::class, 'store']);
+        Route::put('/pengumuman/{pengumuman}', [PengumumanKelolaController::class, 'update']);
+        Route::delete('/pengumuman/{pengumuman}', [PengumumanKelolaController::class, 'destroy']);
     });
 });

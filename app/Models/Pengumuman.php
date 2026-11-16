@@ -27,6 +27,14 @@ class Pengumuman extends Model
         return $this->belongsTo(User::class, 'dibuat_oleh');
     }
 
+    // Admin dan kepala sekolah boleh mengubah semua pengumuman;
+    // pimpinan lain hanya yang dibuatnya sendiri
+    public function dapatDiubahOleh(User $user): bool
+    {
+        return in_array($user->role, [User::ROLE_ADMIN, User::ROLE_KEPALA_SEKOLAH], true)
+            || (int) $this->dibuat_oleh === (int) $user->id;
+    }
+
     // Pengumuman yang aktif dan belum kedaluwarsa
     public function scopeBerlaku(Builder $query): Builder
     {

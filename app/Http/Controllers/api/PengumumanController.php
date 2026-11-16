@@ -31,6 +31,7 @@ class PengumumanController extends Controller
                 'tanggal' => $p->created_at->format('Y-m-d H:i:s'),
                 'berlaku_sampai' => $p->berlaku_sampai?->toDateString(),
                 'pembuat' => $p->pembuat?->name,
+                'dapat_diubah' => $p->dapatDiubahOleh($request->user()),
             ]),
         ]);
     }
