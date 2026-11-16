@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\Siswas\Schemas;
 
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use App\Models\Siswa;
 
 class SiswaForm
@@ -36,17 +37,37 @@ class SiswaForm
                         ->label('Jenis kelamin')
                         ->options(['L' => 'Laki-laki', 'P' => 'Perempuan'])
                         ->required(),
-                    
+
                     Select::make('agama')
                         ->options(array_combine(Siswa::AGAMA, Siswa::AGAMA))
                         ->default('Islam')
                         ->required()
                         ->helperText('Siswa non-muslim tidak ikut absensi sholat.'),
+                ])
+                ->columns(2),
 
-                    Toggle::make('is_active')
-                        ->label('Siswa aktif')
-                        ->default(true)
-                        ->helperText('Matikan jika siswa lulus, pindah, atau keluar.'),
+            Section::make('Status siswa')
+                ->description('Siswa yang lulus, pindah, atau keluar tidak muncul lagi di absensi, tetapi riwayatnya tetap tersimpan.')
+                ->schema([
+                    Select::make('status')
+                        ->options(Siswa::STATUS)
+                        ->default(Siswa::STATUS_AKTIF)
+                        ->required()
+                        ->live()
+                        ->native(false),
+
+                    DatePicker::make('tanggal_keluar')
+                        ->label(fn (Get $get) => $get('status') === Siswa::STATUS_LULUS ? 'Tanggal lulus' : 'Tanggal keluar')
+                        ->default(now())
+                        ->required(fn (Get $get) => $get('status') !== Siswa::STATUS_AKTIF)
+                        ->visible(fn (Get $get) => $get('status') !== Siswa::STATUS_AKTIF),
+
+                    TextInput::make('keterangan_keluar')
+                        ->label('Keterangan')
+                        ->placeholder('Contoh: pindah ke SMK Negeri 1 Lamongan')
+                        ->maxLength(255)
+                        ->visible(fn (Get $get) => $get('status') !== Siswa::STATUS_AKTIF)
+                        ->columnSpanFull(),
                 ])
                 ->columns(2),
 
