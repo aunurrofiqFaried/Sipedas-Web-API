@@ -14,8 +14,9 @@ class KepatuhanJurnal
     public const BATAS_BAIK = 90;
     public const BATAS_CUKUP = 75;
 
-    // Kepatuhan semua guru pada periode ini; kalau $guruId diisi, hanya guru itu beserta daftar sesi terlewat
-    public static function hitung(Carbon $dari, Carbon $sampai, ?int $guruId = null): array
+    // Kepatuhan semua guru pada periode ini; kalau $guruId diisi, hanya guru itu beserta daftar sesi terlewat.
+    // $jurusanId (untuk kaprodi) membatasi hitungan ke sesi di kelas jurusan itu.
+    public static function hitung(Carbon $dari, Carbon $sampai, ?int $guruId = null, ?int $jurusanId = null): array
     {
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
 
@@ -54,7 +55,8 @@ class KepatuhanJurnal
         }
 
         $jadwal = Jadwal::query()
-            ->whereHas('kelas', fn ($q) => $q->where('tahun_ajaran_id', $ta->id))
+            ->whereHas('kelas', fn ($q) => $q->where('tahun_ajaran_id', $ta->id)
+                ->when($jurusanId, fn ($k) => $k->where('jurusan_id', $jurusanId)))
             ->when($guruId, fn ($q) => $q->where('guru_id', $guruId))
             ->with(['kelas:id,nama', 'mapel:id,nama'])
             ->get();

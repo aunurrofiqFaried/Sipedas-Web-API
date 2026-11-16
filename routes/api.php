@@ -99,19 +99,25 @@ Route::middleware('auth:sanctum')->group(function () {
     ->prefix('pimpinan')
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
-        Route::get('/kepatuhan-jurnal', [KepatuhanJurnalController::class, 'index']);
-        Route::get('/kepatuhan-jurnal/{guru}', [KepatuhanJurnalController::class, 'show']);
         Route::get('/pengumuman', [PengumumanKelolaController::class, 'index']);
         Route::post('/pengumuman', [PengumumanKelolaController::class, 'store']);
         Route::put('/pengumuman/{pengumuman}', [PengumumanKelolaController::class, 'update']);
         Route::delete('/pengumuman/{pengumuman}', [PengumumanKelolaController::class, 'destroy']);
-        Route::get('/guru', [DataGuruController::class, 'index']);
-        Route::get('/guru/{guru}', [DataGuruController::class, 'show']);
-        Route::get('/kehadiran', [KehadiranKelasController::class, 'index']);
-        Route::get('/kehadiran/{kelas}', [KehadiranKelasController::class, 'show']);
-        Route::get('/jadwal/pilihan', [JadwalSekolahController::class, 'pilihan']);
-        Route::get('/jadwal/kelas/{kelas}', [JadwalSekolahController::class, 'kelas']);
-        Route::get('/jadwal/guru/{guru}', [JadwalSekolahController::class, 'guru']);
-        Route::get('/jadwal/hari/{hari}', [JadwalSekolahController::class, 'hari'])->whereNumber('hari');
     });
+
+        // Pimpinan melihat semua jurusan; kaprodi hanya jurusannya (disaring di controller)
+    Route::middleware('pimpinan.kaprodi')
+        ->prefix('pimpinan')
+        ->group(function () {
+            Route::get('/kehadiran', [KehadiranKelasController::class, 'index']);
+            Route::get('/kehadiran/{kelas}', [KehadiranKelasController::class, 'show']);
+            Route::get('/jadwal/pilihan', [JadwalSekolahController::class, 'pilihan']);
+            Route::get('/jadwal/kelas/{kelas}', [JadwalSekolahController::class, 'kelas']);
+            Route::get('/jadwal/guru/{guru}', [JadwalSekolahController::class, 'guru']);
+            Route::get('/jadwal/hari/{hari}', [JadwalSekolahController::class, 'hari'])->whereNumber('hari');
+            Route::get('/kepatuhan-jurnal', [KepatuhanJurnalController::class, 'index']);
+            Route::get('/kepatuhan-jurnal/{guru}', [KepatuhanJurnalController::class, 'show']);
+            Route::get('/guru', [DataGuruController::class, 'index']);
+            Route::get('/guru/{guru}', [DataGuruController::class, 'show']);
+        });
 });

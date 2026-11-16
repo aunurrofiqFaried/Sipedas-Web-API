@@ -22,11 +22,7 @@ class JurnalBelumDiisi extends TableWidget
         $user = auth()->user();
 
         return $user instanceof User
-            && in_array($user->role, [
-                User::ROLE_ADMIN,
-                User::ROLE_KESISWAAN,
-                User::ROLE_KEPALA_SEKOLAH,
-            ], true);
+            && $user->punyaPeran(...User::PERAN_PEMANTAU);
     }
 
     public function table(Table $table): Table

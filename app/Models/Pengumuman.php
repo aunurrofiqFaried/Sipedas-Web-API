@@ -28,10 +28,11 @@ class Pengumuman extends Model
     }
 
     // Admin dan kepala sekolah boleh mengubah semua pengumuman;
-    // pimpinan lain hanya yang dibuatnya sendiri
+    // Guru BK dan kesiswaan hanya boleh mengubah pengumuman yang dibuatnya sendiri.
+
     public function dapatDiubahOleh(User $user): bool
     {
-        return in_array($user->role, [User::ROLE_ADMIN, User::ROLE_KEPALA_SEKOLAH], true)
+        return $user->punyaPeran(User::ROLE_ADMIN, User::ROLE_KEPALA_SEKOLAH)
             || (int) $this->dibuat_oleh === (int) $user->id;
     }
 

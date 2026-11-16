@@ -9,6 +9,7 @@ use App\Support\KepatuhanJurnal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use App\Support\LingkupJurusan;
 
 class KepatuhanJurnalController extends Controller
 {
@@ -18,7 +19,7 @@ class KepatuhanJurnalController extends Controller
     {
         [$dari, $sampai] = $this->rentang($request);
 
-        $hasil = KepatuhanJurnal::hitung($dari, $sampai);
+        $hasil = KepatuhanJurnal::hitung($dari, $sampai, null, LingkupJurusan::untuk($request->user()));
         unset($hasil['terlewat']);
 
         return response()->json($hasil);
@@ -29,8 +30,12 @@ class KepatuhanJurnalController extends Controller
     {
         [$dari, $sampai] = $this->rentang($request);
 
-        $hasil = KepatuhanJurnal::hitung($dari, $sampai, $guru->id);
+        $jurusanId = LingkupJurusan::untuk($request->user());
+
+        $hasil = KepatuhanJurnal::hitung($dari, $sampai, $guru->id, $jurusanId);
         $baris = $hasil['guru'][0] ?? null;
+
+        abort_if($jurusanId !== null && $baris === null, 403, 'Guru ini tidak mengajar di jurusan Anda.');
 
         return response()->json([
             'guru' => ['id' => $guru->id, 'nama' => $guru->name, 'nip' => $guru->nip],

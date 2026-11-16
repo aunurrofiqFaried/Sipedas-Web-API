@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Support\LingkupJurusan;
 
 class KehadiranKelasController extends Controller
 {
@@ -23,11 +24,13 @@ class KehadiranKelasController extends Controller
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
         $tanggal = $this->tentukanTanggal($request);
         $tgl = $tanggal->toDateString();
+        $jurusanId = LingkupJurusan::untuk($request->user());
 
         $kelas = DB::table('kelas as k')
             ->leftJoin('jurusan as j', 'j.id', '=', 'k.jurusan_id')
             ->leftJoin('users as u', 'u.id', '=', 'k.wali_kelas_id')
             ->where('k.tahun_ajaran_id', $ta->id)
+            ->when($jurusanId, fn ($q) => $q->where('k.jurusan_id', $jurusanId))
             ->orderBy('k.nama')
             ->get(['k.id', 'k.nama', 'j.nama as jurusan', 'u.name as wali']);
 
@@ -146,6 +149,8 @@ class KehadiranKelasController extends Controller
     {
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
         abort_unless((int) $kelas->tahun_ajaran_id === (int) $ta->id, 404);
+        $jurusanId = LingkupJurusan::untuk($request->user());
+        abort_if($jurusanId !== null && (int) $kelas->jurusan_id !== $jurusanId, 403, 'Kelas ini bukan di jurusan Anda.');
 
         $tanggal = $this->tentukanTanggal($request);
         $tgl = $tanggal->toDateString();

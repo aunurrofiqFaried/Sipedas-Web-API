@@ -90,6 +90,10 @@ class AuthController extends Controller
             'username' => $user->username,
             'nip' => $user->nip,
             'role' => $user->role,
+            'roles' => $user->semuaPeran(),
+            'kaprodi_jurusan' => $user->jurusanDipimpin
+                ? $user->jurusanDipimpin->only(['id', 'kode', 'nama'])
+                : null,
             'is_wali_kelas' => $user->isWaliKelas(),
         ];
     }

@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Support\KepatuhanJurnal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use App\Support\LingkupJurusan;
+use Illuminate\Http\Request;
 
 class DataGuruController extends Controller
 {
@@ -27,16 +29,14 @@ class DataGuruController extends Controller
     ];
 
     // GET /api/pimpinan/guru
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
+        $jurusanId = LingkupJurusan::untuk($request->user());
 
-        $guru = User::where('is_active', true)
-            ->whereNotIn('role', self::DIKECUALIKAN)
-            ->orderBy('name')
-            ->get(['id', 'name', 'nip', 'role']);
-
+        // Kaprodi: hanya sesi dan kelas di jurusannya yang dihitung
         $jadwal = Jadwal::where('tahun_ajaran_id', $ta->id)
+            ->when($jurusanId, fn ($q) => $q->whereHas('kelas', fn ($k) => $k->where('jurusan_id', $jurusanId)))
             ->get(['guru_id', 'kelas_id', 'mapel_id', 'hari', 'jam_ke_mulai', 'jam_ke_selesai'])
             ->groupBy('guru_id');
 
@@ -48,12 +48,20 @@ class DataGuruController extends Controller
 
         $wali = Kelas::where('tahun_ajaran_id', $ta->id)
             ->whereNotNull('wali_kelas_id')
+            ->when($jurusanId, fn ($q) => $q->where('jurusan_id', $jurusanId))
             ->orderBy('nama')
             ->get(['id', 'nama', 'wali_kelas_id'])
             ->groupBy('wali_kelas_id');
 
+        // Kaprodi hanya melihat guru yang mengajar atau menjadi wali di jurusannya
+        $guru = User::where('is_active', true)
+            ->whereNotIn('role', self::DIKECUALIKAN)
+            ->when($jurusanId, fn ($q) => $q->whereIn('id', $jadwal->keys()->merge($wali->keys())->unique()->values()))
+            ->orderBy('name')
+            ->get(['id', 'name', 'nip', 'role']);
+
         // Kepatuhan jurnal bulan ini (dihitung sampai kemarin), satu kali hitung untuk semua guru
-        $kepatuhan = collect(KepatuhanJurnal::hitung(now()->startOfMonth(), now()->endOfMonth())['guru'])
+        $kepatuhan = collect(KepatuhanJurnal::hitung(now()->startOfMonth(), now()->endOfMonth(), null, $jurusanId)['guru'])
             ->keyBy('id');
 
         $baris = $guru->map(function (User $u) use ($jadwal, $piket, $wali, $kepatuhan) {
@@ -96,14 +104,16 @@ class DataGuruController extends Controller
     }
 
     // GET /api/pimpinan/guru/{guru}
-    public function show(User $guru): JsonResponse
+    public function show(Request $request, User $guru): JsonResponse
     {
         abort_unless($guru->is_active && ! in_array($guru->role, self::DIKECUALIKAN, true), 404);
 
         $ta = TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
+        $jurusanId = LingkupJurusan::untuk($request->user());
 
         $jadwal = Jadwal::where('tahun_ajaran_id', $ta->id)
             ->where('guru_id', $guru->id)
+            ->when($jurusanId, fn ($q) => $q->whereHas('kelas', fn ($k) => $k->where('jurusan_id', $jurusanId)))
             ->with(['kelas:id,nama', 'mapel:id,nama', 'ruang:id,nama'])
             ->orderBy('hari')
             ->orderBy('jam_ke_mulai')
@@ -132,11 +142,14 @@ class DataGuruController extends Controller
 
         $waliKelas = Kelas::where('tahun_ajaran_id', $ta->id)
             ->where('wali_kelas_id', $guru->id)
+            ->when($jurusanId, fn ($q) => $q->where('jurusan_id', $jurusanId))
             ->orderBy('nama')
             ->pluck('nama')
             ->all();
 
-        $kep = KepatuhanJurnal::hitung(now()->startOfMonth(), now()->endOfMonth(), $guru->id);
+        abort_if($jurusanId !== null && $jadwal->isEmpty() && $waliKelas === [], 403, 'Guru ini tidak terkait dengan jurusan Anda.');
+
+        $kep = KepatuhanJurnal::hitung(now()->startOfMonth(), now()->endOfMonth(), $guru->id, $jurusanId);
 
         return response()->json([
             'guru' => [

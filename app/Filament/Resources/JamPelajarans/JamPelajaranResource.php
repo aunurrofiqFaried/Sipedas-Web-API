@@ -33,7 +33,7 @@ class JamPelajaranResource extends Resource
     {
         $user = Auth::user();
 
-        return $user instanceof User && $user->role === User::ROLE_ADMIN;
+        return $user instanceof User && $user->punyaPeran(User::ROLE_ADMIN);
     }
 
     // Jam yang sudah dipakai jadwal tidak boleh dihapus

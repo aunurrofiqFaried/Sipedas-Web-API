@@ -20,7 +20,7 @@ class PdfData
             'sekolah' => $sekolah,
             'kopGambar' => $sekolah->kopDataUri(),
             'lebarKop' => $mendatar ? (int) round($persen * 0.68) : $persen,
-            'kepsek' => User::where('role', User::ROLE_KEPALA_SEKOLAH)
+            'kepsek' => User::denganPeran(User::ROLE_KEPALA_SEKOLAH)
                 ->where('is_active', true)
                 ->orderBy('id')
                 ->first(),

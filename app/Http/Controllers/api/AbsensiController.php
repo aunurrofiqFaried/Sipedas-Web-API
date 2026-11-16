@@ -54,7 +54,7 @@ class AbsensiController extends Controller
             ->get()
             ->map(function (Kelas $k) use ($ta, $today, $user, $kelasJadwal) {
                 $alasan = match (true) {
-                    $user->role === User::ROLE_ADMIN => 'admin',
+                    $user->punyaPeran(User::ROLE_ADMIN) => 'admin',
                     (int) $k->wali_kelas_id === (int) $user->id => 'wali',
                     in_array((int) $k->id, $kelasJadwal, true) => 'jadwal',
                     default => 'pengganti',
@@ -175,7 +175,7 @@ class AbsensiController extends Controller
         );
 
         // Tanggal selalu hari ini (jam server). Hanya admin yang boleh mengisi tanggal lain.
-        $tanggal = ($user->role === User::ROLE_ADMIN && ! empty($data['tanggal']))
+        $tanggal = ($user->punyaPeran(User::ROLE_ADMIN) && ! empty($data['tanggal']))
             ? Carbon::parse($data['tanggal'])->toDateString()
             : now()->toDateString();
 
@@ -226,7 +226,7 @@ class AbsensiController extends Controller
     {
         $query = Kelas::query()->where('tahun_ajaran_id', $ta->id);
 
-        if ($user->role === User::ROLE_ADMIN) {
+        if ($user->punyaPeran(User::ROLE_ADMIN)) {
             return $query;
         }
 

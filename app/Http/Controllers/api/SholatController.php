@@ -193,7 +193,7 @@ class SholatController extends Controller
     {
         $query = Kelas::query()->where('tahun_ajaran_id', $ta->id);
 
-        return $user->role === User::ROLE_ADMIN
+        return $user->punyaPeran(User::ROLE_ADMIN)
             ? $query
             : $query->where('wali_kelas_id', $user->id);
     }

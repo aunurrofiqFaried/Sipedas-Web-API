@@ -27,7 +27,7 @@ trait PembatasAkses
             return false;
         }
 
-        return $user->role === User::ROLE_ADMIN || in_array($user->role, $roles, true);
+        return $user->punyaPeran(User::ROLE_ADMIN, ...$roles);
     }
 
     public static function canAccess(): bool

@@ -18,6 +18,9 @@ class JurusansTable
                     ->searchable(),
                 TextColumn::make('nama')
                     ->searchable(),
+                TextColumn::make('kaprodi.name')
+                    ->label('Kaprodi')
+                    ->placeholder('Belum ada'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

@@ -20,7 +20,7 @@ class RoleMiddleware
             return response()->json(['message' => 'Tidak terautentikasi.'], 401);
         }
 
-        if ($user->role === 'admin' || in_array($user->role, $roles, true)) {
+        if ($user->punyaPeran('admin', ...$roles)) {
             return $next($request);
         }
 

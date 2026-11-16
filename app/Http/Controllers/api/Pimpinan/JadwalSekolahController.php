@@ -12,6 +12,8 @@ use App\Models\TahunAjaran;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use App\Support\LingkupJurusan;
+use Illuminate\Http\Request;
 
 class JadwalSekolahController extends Controller
 {
@@ -20,11 +22,16 @@ class JadwalSekolahController extends Controller
 
     // GET /api/pimpinan/jadwal/pilihan
     // Bahan untuk pemilih: jam pelajaran, hari, kelas, dan guru yang punya jadwal
-    public function pilihan(): JsonResponse
+    public function pilihan(Request $request): JsonResponse
     {
         $ta = $this->tahunAjaran();
+        $jurusanId = LingkupJurusan::untuk($request->user());
 
-        $guruIds = Jadwal::where('tahun_ajaran_id', $ta->id)->distinct()->pluck('guru_id');
+        // Kaprodi hanya melihat guru yang mengajar di kelas jurusannya
+        $guruIds = Jadwal::where('tahun_ajaran_id', $ta->id)
+            ->when($jurusanId, fn ($q) => $q->whereHas('kelas', fn ($k) => $k->where('jurusan_id', $jurusanId)))
+            ->distinct()
+            ->pluck('guru_id');
 
         return response()->json([
             'jam' => $this->daftarJam(),
@@ -32,6 +39,7 @@ class JadwalSekolahController extends Controller
             'hari_ini' => $this->hariIni(),
             'kelas' => Kelas::with('jurusan:id,nama')
                 ->where('tahun_ajaran_id', $ta->id)
+                ->when($jurusanId, fn ($q) => $q->where('jurusan_id', $jurusanId))
                 ->orderBy('nama')
                 ->get(['id', 'nama', 'jurusan_id'])
                 ->map(fn (Kelas $k) => [
@@ -50,10 +58,13 @@ class JadwalSekolahController extends Controller
 
     // GET /api/pimpinan/jadwal/kelas/{kelas}
     // Jadwal mingguan satu kelas
-    public function kelas(Kelas $kelas): JsonResponse
+    public function kelas(Request $request, Kelas $kelas): JsonResponse
     {
         $ta = $this->tahunAjaran();
         abort_unless((int) $kelas->tahun_ajaran_id === (int) $ta->id, 404);
+
+        $jurusanId = LingkupJurusan::untuk($request->user());
+        abort_if($jurusanId !== null && (int) $kelas->jurusan_id !== $jurusanId, 403, 'Kelas ini bukan di jurusan Anda.');
 
         $kelas->load(['waliKelas:id,name', 'jurusan:id,nama']);
 
@@ -74,12 +85,17 @@ class JadwalSekolahController extends Controller
 
     // GET /api/pimpinan/jadwal/guru/{guru}
     // Jadwal mingguan satu guru, beserta jadwal piketnya
-    public function guru(User $guru): JsonResponse
+    public function guru(Request $request, User $guru): JsonResponse
     {
         abort_unless($guru->is_active && ! in_array($guru->role, self::DIKECUALIKAN, true), 404);
 
         $ta = $this->tahunAjaran();
-        $jadwal = $this->ambil($ta, fn ($q) => $q->where('guru_id', $guru->id));
+        $jurusanId = LingkupJurusan::untuk($request->user());
+
+        // Bagi kaprodi, hanya sesi di kelas jurusannya yang tampil
+        $jadwal = $this->ambil($ta, fn ($q) => $q->where('guru_id', $guru->id), $jurusanId);
+
+        abort_if($jurusanId !== null && $jadwal->isEmpty(), 403, 'Guru ini tidak mengajar di jurusan Anda.');
         $jam = JamPelajaran::semua();
 
         $piket = JadwalPiket::where('tahun_ajaran_id', $ta->id)
@@ -101,14 +117,14 @@ class JadwalSekolahController extends Controller
 
     // GET /api/pimpinan/jadwal/hari/{hari}
     // Jadwal induk: semua kelas pada satu hari (1 = Senin ... 5 = Jumat)
-    public function hari(int $hari): JsonResponse
+    public function hari(Request $request, int $hari): JsonResponse
     {
         abort_unless(isset(Jadwal::HARI[$hari]), 404, 'Hari tidak dikenal.');
 
         $ta = $this->tahunAjaran();
         $jam = JamPelajaran::semua();
 
-        $jadwal = $this->ambil($ta, fn ($q) => $q->where('hari', $hari));
+        $jadwal = $this->ambil($ta, fn ($q) => $q->where('hari', $hari), LingkupJurusan::untuk($request->user()));
 
         $adalahHariIni = $hari === now()->dayOfWeekIso;
         $libur = $adalahHariIni ? KalenderAkademik::liburPada(now()) : null;
@@ -165,11 +181,13 @@ class JadwalSekolahController extends Controller
         return TahunAjaran::aktif() ?? abort(422, 'Tahun ajaran aktif belum diatur.');
     }
 
-    // Jadwal tahun ajaran aktif beserta relasinya; $saring menambahkan syarat
-    private function ambil(TahunAjaran $ta, callable $saring): Collection
+    // Jadwal tahun ajaran aktif beserta relasinya; $saring menambahkan syarat,
+    // $jurusanId (kaprodi) membatasi ke kelas pada jurusan itu
+    private function ambil(TahunAjaran $ta, callable $saring, ?int $jurusanId = null): Collection
     {
         $q = Jadwal::with(['kelas:id,nama', 'mapel:id,nama', 'guru:id,name', 'ruang:id,nama'])
-            ->where('tahun_ajaran_id', $ta->id);
+            ->where('tahun_ajaran_id', $ta->id)
+            ->when($jurusanId, fn ($w) => $w->whereHas('kelas', fn ($k) => $k->where('jurusan_id', $jurusanId)));
 
         $saring($q);
 

@@ -28,7 +28,7 @@ class UserResource extends Resource
     {
         $user = auth()->user();
 
-        return $user instanceof User && $user->role === User::ROLE_ADMIN;
+        return $user instanceof User && $user->punyaPeran(User::ROLE_ADMIN);
     }
 
     public static function form(Schema $schema): Schema

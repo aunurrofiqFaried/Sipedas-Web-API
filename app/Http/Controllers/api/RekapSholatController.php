@@ -13,12 +13,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\User;
 
 class RekapSholatController extends Controller
 {
-    // Peran yang boleh melihat rekap sholat semua kelas; selain itu hanya wali kelas yang bersangkutan
-    private const PERAN_SEMUA = ['admin', 'kesiswaan', 'kepala_sekolah'];
-
     // GET /api/rekap/sholat/kelas
     // Kelas yang boleh direkap oleh pengguna ini, beserta batas tahun ajaran
     public function kelas(Request $request): JsonResponse
@@ -28,7 +26,7 @@ class RekapSholatController extends Controller
 
         $kelas = Kelas::where('tahun_ajaran_id', $ta->id)
             ->when(
-                ! in_array($user->role, self::PERAN_SEMUA, true),
+                ! $user->punyaPeran(...User::PERAN_PEMANTAU),
                 fn ($q) => $q->where('wali_kelas_id', $user->id)
             )
             ->orderBy('nama')
@@ -88,7 +86,7 @@ class RekapSholatController extends Controller
             ->findOrFail($data['kelas_id']);
 
         abort_unless(
-            in_array($user->role, self::PERAN_SEMUA, true) || (int) $kelas->wali_kelas_id === (int) $user->id,
+            $user->punyaPeran(...User::PERAN_PEMANTAU) || (int) $kelas->wali_kelas_id === (int) $user->id,
             403,
             'Rekap sholat hanya untuk wali kelas, kesiswaan, kepala sekolah, dan admin.'
         );

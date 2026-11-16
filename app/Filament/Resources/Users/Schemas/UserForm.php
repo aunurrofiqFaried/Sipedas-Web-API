@@ -6,6 +6,7 @@ use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class UserForm
@@ -33,10 +34,21 @@ class UserForm
                 ->unique(ignoreRecord: true),
 
             Select::make('role')
-                ->label('Role')
+                ->label('Peran utama')
                 ->options(User::ROLE_LABELS)
                 ->default(User::ROLE_GURU)
-                ->required(),
+                ->required()
+                ->live()
+                ->helperText('Untuk orang yang mengajar, pilih Guru sebagai peran utama.'),
+
+            Select::make('peran_tambahan')
+                ->label('Peran tambahan')
+                ->multiple()
+                ->options(fn (Get $get): array => collect(User::ROLE_LABELS)
+                    ->except($get('role'))
+                    ->all())
+                ->helperText('Kosongkan bila hanya punya satu peran. Contoh: guru yang juga admin.')
+                ->dehydrateStateUsing(fn (?array $state): ?array => filled($state) ? array_values($state) : null),
 
             TextInput::make('password')
                 ->password()
