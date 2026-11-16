@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Pimpinan\KepatuhanJurnalController;
 use App\Http\Controllers\Api\Pimpinan\DashboardController;
 use App\Http\Controllers\Api\Pimpinan\PengumumanKelolaController;
 use App\Http\Controllers\Api\Pimpinan\DataGuruController;
+use App\Http\Controllers\Api\Pimpinan\KehadiranKelasController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -105,5 +106,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/pengumuman/{pengumuman}', [PengumumanKelolaController::class, 'destroy']);
         Route::get('/guru', [DataGuruController::class, 'index']);
         Route::get('/guru/{guru}', [DataGuruController::class, 'show']);
+        Route::get('/kehadiran', [KehadiranKelasController::class, 'index']);
+        Route::get('/kehadiran/{kelas}', [KehadiranKelasController::class, 'show']);
     });
 });
