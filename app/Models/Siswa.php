@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Concerns\DilindungiRiwayat;
 
 class Siswa extends Model
 {
+    use DilindungiRiwayat;
     protected $table = 'siswa';
 
     public const AGAMA = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
@@ -29,6 +31,23 @@ class Siswa extends Model
         'nama_wali', 'hubungan_wali', 'no_hp_wali',
         'is_active', 'status', 'tanggal_keluar', 'keterangan_keluar',
     ];
+
+    protected function penghalangHapus(): array
+    {
+        return [
+            'catatan absensi' => $this->hitung('absensi', 'siswa_id'),
+            'catatan sholat' => $this->hitung('absensi_sholat', 'siswa_id'),
+            'catatan pelanggaran' => $this->hitung('pelanggaran_siswa', 'siswa_id'),
+            'surat peringatan' => $this->hitung('sp_siswa', 'siswa_id'),
+            'catatan remisi' => $this->hitung('remisi_siswa', 'siswa_id'),
+            'catatan kontak wali' => $this->hitung('kontak_wali', 'siswa_id'),
+        ];
+    }
+
+    protected function saranHapus(): string
+    {
+        return 'Ubah statusnya menjadi Lulus, Pindah, atau Keluar agar riwayatnya tetap tersimpan.';
+    }
 
     protected function casts(): array
     {

@@ -6,9 +6,23 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use app\Models\Concerns\DilindungiRiwayat;
 
 class Jadwal extends Model
 {
+    use DilindungiRiwayat;
+    protected function penghalangHapus(): array
+    {
+        return [
+            'jurnal mengajar' => $this->hitung('jurnal', 'jadwal_id'),
+        ];
+    }
+
+    protected function saranHapus(): string
+    {
+        return 'Ubah jadwalnya (bukan dihapus) agar jurnal yang sudah diisi tetap tersimpan.';
+    }
+    
     protected $table = 'jadwal';
 
     protected $fillable = [

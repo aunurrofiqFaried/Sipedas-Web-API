@@ -9,10 +9,11 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use App\Models\Concerns\DilindungiRiwayat;
 
 class User extends Authenticatable implements FilamentUser
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, DilindungiRiwayat;
 
     public const ROLE_ADMIN = 'admin';
     public const ROLE_GURU = 'guru';
@@ -83,12 +84,31 @@ class User extends Authenticatable implements FilamentUser
     }
 
     public function canAccessPanel(Panel $panel): bool
-{
-    return $this->is_active && in_array($this->role, [
-        self::ROLE_ADMIN,
-        self::ROLE_KESISWAAN,
-        self::ROLE_KEPALA_SEKOLAH,
-        self::ROLE_GURU_BK,
-    ], true);
-}
+    {
+        return $this->is_active && in_array($this->role, [
+            self::ROLE_ADMIN,
+            self::ROLE_KESISWAAN,
+            self::ROLE_KEPALA_SEKOLAH,
+            self::ROLE_GURU_BK,
+        ], true);
+    }
+
+    protected function penghalangHapus(): array
+    {
+        return [
+            'jadwal mengajar' => $this->hitung('jadwal', 'guru_id'),
+            'jurnal mengajar' => $this->hitung('jurnal', 'guru_id'),
+            'jadwal piket' => $this->hitung('jadwal_piket', 'user_id'),
+            'catatan absensi' => $this->hitung('absensi', 'diinput_oleh'),
+            'catatan sholat' => $this->hitung('absensi_sholat', 'diinput_oleh'),
+            'catatan pelanggaran' => $this->hitung('pelanggaran_siswa', 'dicatat_oleh'),
+            'catatan remisi' => $this->hitung('remisi_siswa', 'dicatat_oleh'),
+            'catatan kontak wali' => $this->hitung('kontak_wali', 'dihubungi_oleh'),
+        ];
+    }
+
+    protected function saranHapus(): string
+    {
+        return 'Nonaktifkan akunnya saja (matikan "aktif") agar riwayatnya tetap utuh.';
+    }
 }
