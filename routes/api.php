@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\Pimpinan\DashboardController;
 use App\Http\Controllers\Api\Pimpinan\PengumumanKelolaController;
 use App\Http\Controllers\Api\Pimpinan\DataGuruController;
 use App\Http\Controllers\Api\Pimpinan\KehadiranKelasController;
+use App\Http\Controllers\Api\Pimpinan\JadwalSekolahController;
 
 // Publik: login dibatasi 5 percobaan per menit
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
@@ -108,5 +109,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/guru/{guru}', [DataGuruController::class, 'show']);
         Route::get('/kehadiran', [KehadiranKelasController::class, 'index']);
         Route::get('/kehadiran/{kelas}', [KehadiranKelasController::class, 'show']);
+        Route::get('/jadwal/pilihan', [JadwalSekolahController::class, 'pilihan']);
+        Route::get('/jadwal/kelas/{kelas}', [JadwalSekolahController::class, 'kelas']);
+        Route::get('/jadwal/guru/{guru}', [JadwalSekolahController::class, 'guru']);
+        Route::get('/jadwal/hari/{hari}', [JadwalSekolahController::class, 'hari'])->whereNumber('hari');
     });
 });
